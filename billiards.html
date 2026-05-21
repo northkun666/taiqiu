@@ -868,11 +868,11 @@ function closeModal(){document.getElementById('overlay').classList.add('hidden')
 // ═══ CUE AIM DIAL ═══
 function initDial(){
   const ac=document.getElementById('cueAimCanvas');
-  const dpr=window.devicePixelRatio||1;
+  const scl=Math.max(2,window.devicePixelRatio||1);
   const W=80,H=80;
-  ac.width=W*dpr;ac.height=H*dpr;
+  ac.width=W*scl;ac.height=H*scl;
   ac.style.width=W+'px';ac.style.height=H+'px';
-  const actx=ac.getContext('2d');actx.scale(dpr,dpr);
+  const actx=ac.getContext('2d');actx.scale(scl,scl);
   const cx=W/2,cy=H/2,R=cx-3;
   function drawDial(){
     actx.clearRect(0,0,W,H);
@@ -975,7 +975,14 @@ function showToast(msg){
 // ═══ PEERJS ═══
 function initPeer(){
   const rid='pool-'+Math.random().toString(36).substr(2,6).toUpperCase();
-  peer=new Peer(rid,{debug:0,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}});
+  peer=new Peer(rid,{debug:0,config:{iceServers:[
+    {urls:'stun:stun.l.google.com:19302'},
+    {urls:'stun:stun1.l.google.com:19302'},
+    {urls:'stun:stun2.l.google.com:19302'},
+    {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+  ]}});
   peer.on('open',id=>{
     document.getElementById('myPeerIdText').textContent=id;
     document.getElementById('netDot').className='dot on';
@@ -1052,11 +1059,11 @@ function resizeCanvas(){
 // ═══ INIT ═══
 window.onload=function(){
   canvas=document.getElementById('gameCanvas');
-  const dpr=window.devicePixelRatio||1;
-  canvas.width=CW*dpr;canvas.height=CH*dpr;
+  const scl=Math.max(2,window.devicePixelRatio||1); // 至少2x超采样，彻底消除模糊
+  canvas.width=CW*scl;canvas.height=CH*scl;
   canvas.style.width=CW+'px';canvas.style.height=CH+'px';
   ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);  // 高分屏2x/3x渲染，逻辑坐标不变
+  ctx.scale(scl,scl);
 
   setupPockets();setupBalls();buildTrays();initDial();updatePower(50);updTurnUI();
   resizeCanvas();
@@ -1065,6 +1072,7 @@ window.onload=function(){
   canvas.addEventListener('mousedown',canDown);
   canvas.addEventListener('mousemove',canMove);
   canvas.addEventListener('mouseup',canUp);
+  document.addEventListener('mouseup',canUp);  // 拖出球桌外释放也触发
   canvas.addEventListener('mouseleave',()=>{aimDragging=false;});
   canvas.addEventListener('touchstart',e=>{e.preventDefault();canDown(e);},{passive:false});
   canvas.addEventListener('touchmove',e=>{e.preventDefault();canMove(e);},{passive:false});
