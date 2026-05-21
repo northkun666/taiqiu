@@ -474,7 +474,7 @@ let balls=[],pockets=[];
 let currentPlayer=1;
 let playerTypes={1:null,2:null};
 let scores={1:0,2:0};
-let gameOver=false,firstBreak=true,ballsMoving=false;
+let gameOver=false,firstBreak=true,ballsMoving=false,ballInHand=false;
 let animId=null,thisTurnPocketed=[];
 
 let aimDragging=false,aimOrigin={x:0,y:0},aimCurrent={x:0,y:0};
@@ -707,7 +707,8 @@ function endOfTurn(){
   }
   if(cuePoc){
     showFoul();addLog('玩家'+currentPlayer+' 犯规：母球入袋','bad');
-    replaceCue();sw=true;
+    ballInHand=true;updBallInHandUI();
+    sw=true;
   }else if(other.length>0){
     if(!playerTypes[1]&&!playerTypes[2]&&!firstBreak){
       const ft=other[0].isSolid?'solid':'stripe';
@@ -723,6 +724,22 @@ function endOfTurn(){
   updTurnUI();syncState();
 }
 function isMyBall(b,p){const t=playerTypes[p];if(!t)return false;return(t==='solid'&&b.isSolid)||(t==='stripe'&&b.isStripe);}
+function updBallInHandUI(){
+  const p=document.getElementById('turnBadge');
+  if(ballInHand){p.textContent='放置母球';p.className='badge free';p.style.background='var(--accent2)';}
+  else{p.textContent=ballsMoving?'运动中':'击球';p.className='badge';p.style.background='';}
+}
+function placeCueBall(x,y){
+  const c=getBall(0);c.pocketed=false;c.vx=0;c.vy=0;c.sx=0;c.sy=0;
+  c.x=Math.max(RAIL+BR+2,Math.min(CW-RAIL-BR-2,x));
+  c.y=Math.max(RAIL+BR+2,Math.min(CH-RAIL-BR-2,y));
+  // Check overlap
+  for(const b of balls){if(b.isCue||b.pocketed)continue;if(Math.hypot(b.x-c.x,b.y-c.y)<b.r+c.r+3)return false;}
+  ballInHand=false;updBallInHandUI();
+  addLog('玩家'+currentPlayer+' 放置母球','info');
+  if(conn&&conn.open)conn.send({type:'place',x:c.x,y:c.y});
+  return true;
+}
 function replaceCue(){
   const c=getBall(0);c.pocketed=false;c.vx=0;c.vy=0;c.sx=0;c.sy=0;
   c.x=CW*.22;c.y=CH/2;
@@ -734,19 +751,20 @@ function replaceCue(){
   addLog('母球已重置','info');
 }
 function getBall(id){return balls.find(b=>b.id===id);}
-function shoot(dx,dy,pwr){
+function shoot(dx,dy,pwr,remote=false){
   if(gameOver||ballsMoving)return;
-  if(onlineMode&&currentPlayer!==myPlayerId){showToast('还未到你的回合');return;}
+  if(!remote&&onlineMode&&currentPlayer!==myPlayerId){showToast('还未到你的回合');return;}
   const cue=getBall(0);if(!cue||cue.pocketed)return;
   const dist=Math.hypot(dx,dy);if(dist<1)return;
   const nx=dx/dist,ny=dy/dist;
+  if(ballInHand){ballInHand=false;updBallInHandUI();}
   // 平方根曲线：低力度有感觉，高力度不过分
   const spd=Math.sqrt(pwr/100)*MAX_SPEED;
   cue.vx=nx*spd;cue.vy=ny*spd;
   cue.sx=cueOfs.x*spd*.16;cue.sy=cueOfs.y*spd*.16;
   ballsMoving=true;
   addLog('玩家'+currentPlayer+' 出杆('+pwr+'%)','good');
-  if(conn&&conn.open)conn.send({type:'shot',dx,dy,pwr,cueOfs:{...cueOfs},cueX:cue.x,cueY:cue.y});
+  if(!remote&&conn&&conn.open)conn.send({type:'shot',dx,dy,pwr,cueOfs:{...cueOfs},cueX:cue.x,cueY:cue.y});
 }
 
 // ═══ SETUP ═══
@@ -801,6 +819,17 @@ function gameLoop(){
   drawTable();
   if(ballsMoving)physStep();
   for(const b of balls)b.draw(ctx);
+  // 自由球：高亮提示
+  if(ballInHand&&!ballsMoving&&(!onlineMode||currentPlayer===myPlayerId)){
+    ctx.save();
+    ctx.fillStyle='rgba(46,139,90,.08)';
+    ctx.fillRect(RAIL,RAIL,CW-RAIL*2,CH-RAIL*2);
+    ctx.strokeStyle='rgba(46,139,90,.25)';ctx.lineWidth=2;
+    ctx.strokeRect(RAIL,RAIL,CW-RAIL*2,CH-RAIL*2);
+    ctx.fillStyle='rgba(46,139,90,.9)';ctx.font='bold 14px system-ui';
+    ctx.textAlign='center';ctx.fillText('点击桌面放置母球',CW/2,CH/2+5);
+    ctx.restore();
+  }
   drawAimLine();
   animId=requestAnimationFrame(gameLoop);
 }
@@ -812,9 +841,10 @@ function updTurnUI(){
   const tb=document.getElementById('turnBadge'),tt=document.getElementById('turnText');
   const isMe=!onlineMode||(currentPlayer===myPlayerId);
   if(gameOver){tt.textContent='游戏结束';tb.className='badge';return;}
-  if(firstBreak){tt.textContent='玩家'+currentPlayer+' 开球';tb.className='badge brk';tb.textContent='开球';}
-  else if(!isMe){tt.textContent='等待玩家'+currentPlayer+'…';tb.className='badge wait';tb.textContent='等待';}
-  else{tt.textContent='玩家'+currentPlayer+' 的回合';tb.className='badge';tb.textContent='击球';}
+  if(ballInHand){tt.textContent='玩家'+currentPlayer+' 自由放置母球';tb.className='badge free';tb.style.background='var(--accent2)';tb.textContent='放置母球';}
+  else if(firstBreak){tt.textContent='玩家'+currentPlayer+' 开球';tb.className='badge brk';tb.textContent='开球';tb.style.background='';}
+  else if(!isMe){tt.textContent='等待玩家'+currentPlayer+'…';tb.className='badge wait';tb.textContent='等待';tb.style.background='';}
+  else{tt.textContent='玩家'+currentPlayer+' 的回合';tb.className='badge';tb.textContent='击球';tb.style.background='';}
 }
 function showFoul(){const el=document.getElementById('foulMsg');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1800);}
 function endGame(w,msg){
@@ -825,12 +855,12 @@ function endGame(w,msg){
 function resetGame(){
   if(animId){cancelAnimationFrame(animId);animId=null;}
   gameOver=false;currentPlayer=1;playerTypes={1:null,2:null};scores={1:0,2:0};
-  firstBreak=true;ballsMoving=false;thisTurnPocketed=[];aimDragging=false;
+  firstBreak=true;ballsMoving=false;thisTurnPocketed=[];aimDragging=false;ballInHand=false;
   document.getElementById('pts1').textContent='0';document.getElementById('pts2').textContent='0';
   document.getElementById('type1').textContent='—';document.getElementById('type2').textContent='—';
   document.getElementById('gameLog').innerHTML='<div class="li info">新局开始</div>';
   document.getElementById('b8icon').classList.remove('out');
-  setupBalls();buildTrays();updTurnUI();
+  setupBalls();buildTrays();updTurnUI();updBallInHandUI();
   gameLoop();
 }
 function closeModal(){document.getElementById('overlay').classList.add('hidden');}
@@ -893,15 +923,30 @@ function getCP(e){
   return{x:(cx-canvasRect.left)*sx,y:(cy-canvasRect.top)*sy};
 }
 function canDown(e){
-  if(ballsMoving||gameOver)return;
+  if(gameOver)return;
   if(onlineMode&&currentPlayer!==myPlayerId)return;
+  // 自由球：点击放置母球
+  if(ballInHand){
+    const cue=getBall(0);if(!cue)return;
+    const p=getCP(e);
+    if(p.x<RAIL||p.x>CW-RAIL||p.y<RAIL||p.y>CH-RAIL)return; // 不在台内
+    if(placeCueBall(p.x,p.y)){syncState();return;}
+    showToast('此处有球，请换位置');
+    return;
+  }
+  if(ballsMoving)return;
   canvasRect=canvas.getBoundingClientRect();
-  const p=getCP(e);aimDragging=true;aimOrigin={...p};aimCurrent={...p};
+  const p=getCP(e);
+  // 只允许在球桌范围内拖拽
+  if(p.x<RAIL||p.x>CW-RAIL||p.y<RAIL||p.y>CH-RAIL)return;
+  aimDragging=true;aimOrigin={...p};aimCurrent={...p};
 }
 function canMove(e){if(!aimDragging)return;aimCurrent=getCP(e);}
 function canUp(e){
   if(!aimDragging)return;aimDragging=false;
   const p=getCP(e);
+  // 释放点在球桌外则不击球
+  if(p.x<RAIL||p.x>CW-RAIL||p.y<RAIL||p.y>CH-RAIL)return;
   const dx=aimOrigin.x-p.x,dy=aimOrigin.y-p.y,dist=Math.hypot(dx,dy);
   if(dist<5)return;
   const dragPwr=Math.min(100,dist*0.8);
@@ -969,16 +1014,18 @@ function setupPC(){
   conn.on('error',e=>addLog('连接错误','bad'));
 }
 function onData(data){
-  if(data.type==='shot'){const cue=getBall(0);if(!cue)return;cue.x=data.cueX;cue.y=data.cueY;if(data.cueOfs)Object.assign(cueOfs,data.cueOfs);shoot(data.dx,data.dy,data.pwr);}
+  if(data.type==='shot'){const cue=getBall(0);if(!cue)return;cue.x=data.cueX;cue.y=data.cueY;if(data.cueOfs)Object.assign(cueOfs,data.cueOfs);if(data.bih!==undefined){ballInHand=data.bih;updBallInHandUI();}shoot(data.dx,data.dy,data.pwr,true);}
+  else if(data.type==='place'){const cue=getBall(0);if(!cue)return;cue.x=data.x;cue.y=data.y;cue.pocketed=false;ballInHand=false;updBallInHandUI();addLog('对方放置了母球','info');}
   else if(data.type==='state'&&!isHost)applyState(data.state);
   else if(data.type==='reset')resetGame();
 }
 function syncState(){
   if(!conn||!conn.open||!isHost)return;
-  conn.send({type:'state',state:{balls:balls.map(b=>({id:b.id,x:b.x,y:b.y,vx:b.vx,vy:b.vy,pocketed:b.pocketed})),currentPlayer,playerTypes,scores,firstBreak,gameOver}});
+  conn.send({type:'state',state:{balls:balls.map(b=>({id:b.id,x:b.x,y:b.y,vx:b.vx,vy:b.vy,pocketed:b.pocketed})),currentPlayer,playerTypes,scores,firstBreak,gameOver,ballInHand}});
 }
 function applyState(s){
   currentPlayer=s.currentPlayer;playerTypes=s.playerTypes;scores=s.scores;firstBreak=s.firstBreak;gameOver=s.gameOver;
+  if(s.ballInHand!==undefined){ballInHand=s.ballInHand;updBallInHandUI();}
   document.getElementById('pts1').textContent=scores[1];document.getElementById('pts2').textContent=scores[2];
   for(const bs of s.balls){const l=getBall(bs.id);if(l){l.x=bs.x;l.y=bs.y;l.vx=bs.vx;l.vy=bs.vy;if(bs.pocketed&&!l.pocketed){l.pocketed=true;updateTray(bs.id);}}}
   updTypeUI();updTurnUI();
@@ -1012,7 +1059,7 @@ window.onload=function(){
   canvas.addEventListener('mousedown',canDown);
   canvas.addEventListener('mousemove',canMove);
   canvas.addEventListener('mouseup',canUp);
-  canvas.addEventListener('mouseleave',e=>{if(aimDragging)canUp(e);});
+  canvas.addEventListener('mouseleave',()=>{aimDragging=false;});
   canvas.addEventListener('touchstart',e=>{e.preventDefault();canDown(e);},{passive:false});
   canvas.addEventListener('touchmove',e=>{e.preventDefault();canMove(e);},{passive:false});
   canvas.addEventListener('touchend',e=>{e.preventDefault();canUp(e);},{passive:false});
