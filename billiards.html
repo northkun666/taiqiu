@@ -456,7 +456,7 @@ const SPIN_FRIC     = 0.94;
 const RESTITUTION   = 0.88;    // 球球弹性
 const RAIL_REST     = 0.74;    // 台边弹性
 const MIN_V         = 0.04;
-const MAX_SPEED     = 5;       // 最大初速（手感自然）
+const MAX_SPEED     = 6;       // 最大初速（手感自然，适当增加）
 let   PR    = 16;              // pocket radius, scaled later
 
 const BCOLORS={
@@ -868,8 +868,12 @@ function closeModal(){document.getElementById('overlay').classList.add('hidden')
 // ═══ CUE AIM DIAL ═══
 function initDial(){
   const ac=document.getElementById('cueAimCanvas');
-  const actx=ac.getContext('2d');
-  const W=ac.width,H=ac.height,cx=W/2,cy=H/2,R=cx-3;
+  const dpr=window.devicePixelRatio||1;
+  const W=80,H=80;
+  ac.width=W*dpr;ac.height=H*dpr;
+  ac.style.width=W+'px';ac.style.height=H+'px';
+  const actx=ac.getContext('2d');actx.scale(dpr,dpr);
+  const cx=W/2,cy=H/2,R=cx-3;
   function drawDial(){
     actx.clearRect(0,0,W,H);
     const bg=actx.createRadialGradient(cx-R*.3,cy-R*.33,R*.04,cx,cy,R);
@@ -1048,8 +1052,11 @@ function resizeCanvas(){
 // ═══ INIT ═══
 window.onload=function(){
   canvas=document.getElementById('gameCanvas');
-  canvas.width=CW;canvas.height=CH;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=CW*dpr;canvas.height=CH*dpr;
+  canvas.style.width=CW+'px';canvas.style.height=CH+'px';
   ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);  // 高分屏2x/3x渲染，逻辑坐标不变
 
   setupPockets();setupBalls();buildTrays();initDial();updatePower(50);updTurnUI();
   resizeCanvas();
