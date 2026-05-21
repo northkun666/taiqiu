@@ -945,8 +945,7 @@ function canMove(e){if(!aimDragging)return;aimCurrent=getCP(e);}
 function canUp(e){
   if(!aimDragging)return;aimDragging=false;
   const p=getCP(e);
-  // 释放点在球桌外则不击球
-  if(p.x<RAIL||p.x>CW-RAIL||p.y<RAIL||p.y>CH-RAIL)return;
+  // 释放点不做台内限制（边库球需要往外拖）
   const dx=aimOrigin.x-p.x,dy=aimOrigin.y-p.y,dist=Math.hypot(dx,dy);
   if(dist<5)return;
   const dragPwr=Math.min(100,dist*0.8);
