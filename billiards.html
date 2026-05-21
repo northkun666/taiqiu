@@ -345,9 +345,9 @@ hr.div{border:none;border-top:1px solid var(--border);margin:0;}
   <div class="pwr-blk">
     <div class="pwr-top">
       <span style="font-size:10px;color:var(--text-m);">力度</span>
-      <span class="pwr-val" id="pwrVal">50%</span>
+      <span class="pwr-val" id="pwrVal">50% → 速度71%</span>
     </div>
-    <input type="range" id="pwrSlider" min="5" max="100" value="50" oninput="updatePower(this.value)">
+    <input type="range" id="pwrSlider" min="2" max="100" value="50" oninput="updatePower(this.value)">
     <div class="pwr-bar-bg"><div class="pwr-bar" id="pwrBar" style="width:50%"></div></div>
   </div>
 
@@ -451,12 +451,12 @@ hr.div{border:none;border-top:1px solid var(--border);margin:0;}
 let CW=700, CH=380;
 const RAIL  = 22;
 const BR    = 9;
-const FRICTION      = 0.985;   // 台泥摩擦（略增加减速）
+const FRICTION      = 0.978;   // 台泥摩擦（更快减速，手感真实）
 const SPIN_FRIC     = 0.90;
-const RESTITUTION   = 0.88;    // 球球
-const RAIL_REST     = 0.72;    // 台边
+const RESTITUTION   = 0.85;    // 球球弹性
+const RAIL_REST     = 0.70;    // 台边弹性
 const MIN_V         = 0.06;
-const MAX_SPEED     = 13;      // ← 降速（原22）
+const MAX_SPEED     = 7;       // 最大速度降低（手感舒适）
 let   PR    = 16;              // pocket radius, scaled later
 
 const BCOLORS={
@@ -740,7 +740,8 @@ function shoot(dx,dy,pwr){
   const cue=getBall(0);if(!cue||cue.pocketed)return;
   const dist=Math.hypot(dx,dy);if(dist<1)return;
   const nx=dx/dist,ny=dy/dist;
-  const spd=(pwr/100)*MAX_SPEED;  // 最大速度已降低
+  // 平方根曲线：低力度有感觉，高力度不过分
+  const spd=Math.sqrt(pwr/100)*MAX_SPEED;
   cue.vx=nx*spd;cue.vy=ny*spd;
   cue.sx=cueOfs.x*spd*.16;cue.sy=cueOfs.y*spd*.16;
   ballsMoving=true;
@@ -878,7 +879,8 @@ function initDial(){
 // ═══ POWER ═══
 function updatePower(v){
   power=parseInt(v);
-  document.getElementById('pwrVal').textContent=power+'%';
+  const eff=Math.round(Math.sqrt(power/100)*100);
+  document.getElementById('pwrVal').textContent=power+'% → 速度'+eff+'%';
   document.getElementById('pwrBar').style.width=power+'%';
 }
 
@@ -902,7 +904,7 @@ function canUp(e){
   const p=getCP(e);
   const dx=aimOrigin.x-p.x,dy=aimOrigin.y-p.y,dist=Math.hypot(dx,dy);
   if(dist<5)return;
-  const dragPwr=Math.min(100,dist*1.05);
+  const dragPwr=Math.min(100,dist*0.8);
   const fp=Math.round(power*.5+dragPwr*.5);
   shoot(dx,dy,Math.min(100,fp));
 }
