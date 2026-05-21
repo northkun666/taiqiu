@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联机台球 · Online Billiards</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #21262d;
+  --border: #30363d;
+  --accent: #52c4a0;
+  --accent2: #a8d8c8;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --cloth: #2d6a4f;
+  --cloth-hi: #40916c;
+  --cushion: #1b4332;
+  --wood: #5c3317;
+  --gold: #d4a853;
+  --danger: #e05c5c;
+  --purple: #a78bfa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:14px 12px 24px;
+  overflow-x:hidden;
+}
+
+/* ── Header ── */
+.header{
+  width:100%;max-width:1120px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:14px;
+}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo h1{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:.4px;}
+.logo sub{font-size:11px;color:var(--text-muted);margin-left:4px;}
+.header-actions{display:flex;gap:8px;align-items:center;}
+
+/* ── Layout ── */
+.main{
+  display:flex;gap:14px;width:100%;max-width:1120px;
+  align-items:flex-start;
+}
+
+/* ── Panels ── */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:13px 14px;
+}
+.panel h3{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.1px;
+  color:var(--text-muted);margin-bottom:11px;padding-bottom:7px;
+  border-bottom:1px solid var(--border);
+}
+.left-panel{
+  width:210px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:11px;
+}
+.right-panel{
+  width:190px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:11px;
+}
+
+/* ── Network ── */
+.net-row{display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+.dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--text-muted);flex-shrink:0;
+}
+.dot.on{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.dot.wait{background:var(--gold);box-shadow:0 0 6px var(--gold);animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.net-row span{font-size:12px;}
+.peer-box{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;padding:7px 9px;
+  font-family:monospace;font-size:11.5px;color:var(--accent2);
+  word-break:break-all;min-height:34px;margin-bottom:9px;
+}
+.copy-btn{
+  font-size:10px;cursor:pointer;color:var(--accent);
+  float:right;margin-left:4px;
+  border:none;background:none;padding:0;
+}
+.input-row{display:flex;gap:6px;margin-bottom:7px;}
+input[type=text]{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);padding:7px 9px;
+  font-size:12px;outline:none;transition:border-color .2s;
+}
+input[type=text]:focus{border-color:var(--accent);}
+input[type=text]::placeholder{color:var(--text-muted);}
+
+/* ── Buttons ── */
+.btn{
+  background:var(--accent);color:#000;
+  border:none;border-radius:8px;padding:7px 13px;
+  font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .18s;white-space:nowrap;
+}
+.btn:hover{filter:brightness(1.12);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn.sec{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn.dng{background:var(--danger);color:#fff;}
+.btn:disabled{opacity:.38;cursor:not-allowed;transform:none;}
+.btn-full{width:100%;}
+
+/* ── Cue aim dial ── */
+.aim-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+#cueAimCanvas{
+  border-radius:50%;cursor:crosshair;
+  border:2px solid var(--border);display:block;
+}
+.aim-lbl{font-size:10px;color:var(--text-muted);text-align:center;line-height:1.5;}
+.aim-coord{font-size:11px;color:var(--accent2);font-family:monospace;}
+
+/* ── Power ── */
+.pwr-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pwr-val{font-size:15px;font-weight:700;color:var(--accent);}
+input[type=range]{
+  width:100%;-webkit-appearance:none;
+  height:5px;border-radius:3px;background:var(--surface2);
+  outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;
+  border-radius:50%;background:var(--accent);
+  box-shadow:0 0 5px rgba(82,196,160,.5);
+}
+.pwr-bar-bg{
+  height:7px;background:var(--surface2);
+  border-radius:4px;overflow:hidden;margin-top:6px;
+}
+.pwr-bar{
+  height:100%;border-radius:4px;
+  background:linear-gradient(90deg,#52c4a0,#a8d8c8);
+  transition:width .1s;
+}
+.pwr-scale{display:flex;justify-content:space-between;font-size:9.5px;color:var(--text-muted);margin-top:3px;}
+
+/* ── Score ── */
+.score-wrap{display:flex;gap:8px;}
+.score-card{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 7px;text-align:center;
+  transition:border-color .2s;
+}
+.score-card.active{border-color:var(--accent);}
+.score-name{font-size:10px;color:var(--text-muted);margin-bottom:3px;}
+.score-pts{font-size:22px;font-weight:700;}
+.score-type{font-size:9px;margin-top:2px;}
+
+/* ── Log ── */
+.game-log{
+  max-height:115px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:3px;font-size:11px;
+}
+.game-log::-webkit-scrollbar{width:3px;}
+.game-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.log-item{
+  padding:3px 7px;background:var(--surface2);
+  border-radius:4px;color:var(--text-muted);
+  border-left:3px solid transparent;
+}
+.log-item.good{border-left-color:var(--accent);color:var(--text);}
+.log-item.bad{border-left-color:var(--danger);}
+.log-item.info{border-left-color:var(--gold);}
+
+/* ── Canvas ── */
+.canvas-area{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+#gameCanvas{
+  border-radius:6px;display:block;
+  box-shadow:0 8px 32px rgba(0,0,0,.65),0 0 0 4px #1b4332,0 0 0 7px #5c3317;
+  cursor:crosshair;max-width:100%;
+}
+
+/* ── Turn bar ── */
+.turn-bar{
+  width:100%;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;
+  padding:9px 15px;display:flex;
+  align-items:center;justify-content:space-between;font-size:13px;
+}
+.turn-badge{
+  background:var(--accent);color:#000;
+  border-radius:6px;padding:3px 10px;
+  font-weight:700;font-size:11px;
+}
+.turn-badge.wait{background:var(--gold);}
+.turn-badge.brk{background:var(--purple);color:#fff;}
+.hint{font-size:10.5px;color:var(--text-muted);text-align:center;padding:4px;}
+
+/* ── Ball tray ── */
+.ball-tray{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;}
+.bi{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;font-weight:700;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  box-shadow:inset -2px -2px 4px rgba(0,0,0,.4),
+             inset 2px 2px 4px rgba(255,255,255,.18);
+  opacity:1;transition:opacity .3s;
+}
+.bi.out{opacity:.18;}
+
+/* ── Modal ── */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;backdrop-filter:blur(5px);
+}
+.overlay.hidden{display:none;}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:32px 28px;width:340px;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.modal h2{font-size:22px;margin-bottom:8px;color:var(--accent);}
+.modal p{color:var(--text-muted);font-size:13px;margin-bottom:20px;line-height:1.65;}
+.modal-btns{display:flex;gap:10px;justify-content:center;}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:22px;left:50%;
+  transform:translateX(-50%) translateY(18px);
+  background:var(--surface);border:1px solid var(--accent);
+  color:var(--text);padding:9px 18px;border-radius:9px;
+  font-size:13px;opacity:0;transition:all .28s;
+  pointer-events:none;z-index:200;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Foul overlay on canvas ── */
+.foul-msg{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:rgba(224,92,92,.9);
+  color:#fff;padding:8px 18px;border-radius:8px;
+  font-weight:700;font-size:15px;pointer-events:none;
+  opacity:0;transition:opacity .3s;
+}
+.foul-msg.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <span style="font-size:22px;">🎱</span>
+    <h1>Billiards Online</h1>
+    <sub>8-Ball Pool</sub>
+  </div>
+  <div class="header-actions">
+    <span id="modeLabel" style="font-size:11px;color:var(--text-muted);">本地双人 / 联机对战</span>
+    <button class="btn sec" onclick="resetGame()">重开一局</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <!-- Left -->
+  <div class="left-panel">
+
+    <!-- Network -->
+    <div class="panel">
+      <h3>联机对战</h3>
+      <div class="net-row">
+        <div class="dot" id="netDot"></div>
+        <span id="netStatus">初始化中…</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:5px;">
+        你的房间ID（分享给朋友）
+      </div>
+      <div class="peer-box" id="myPeerId">
+        <button class="copy-btn" onclick="copyId()">复制</button>
+        <span id="myPeerIdText">—</span>
+      </div>
+      <div class="input-row">
+        <input type="text" id="connectInput" placeholder="输入对方房间ID" />
+        <button class="btn" id="connectBtn" onclick="connectToPeer()">连接</button>
+      </div>
+      <button class="btn sec btn-full" onclick="disconnectPeer()" style="margin-top:4px;">断开</button>
+    </div>
+
+    <!-- Aim dial -->
+    <div class="panel">
+      <h3>击打位置</h3>
+      <div class="aim-wrap">
+        <canvas id="cueAimCanvas" width="94" height="94"></canvas>
+        <div class="aim-coord" id="aimCoord">中心 (0.0, 0.0)</div>
+        <div class="aim-lbl">点击调整击打点<br>影响上/下/左/右旋转</div>
+      </div>
+    </div>
+
+    <!-- Power -->
+    <div class="panel">
+      <h3>出杆力度</h3>
+      <div class="pwr-header">
+        <span style="font-size:11px;color:var(--text-muted);">力度</span>
+        <span class="pwr-val" id="pwrVal">50%</span>
+      </div>
+      <input type="range" id="pwrSlider" min="5" max="100" value="50" oninput="updatePower(this.value)">
+      <div class="pwr-bar-bg"><div class="pwr-bar" id="pwrBar" style="width:50%"></div></div>
+      <div class="pwr-scale"><span>轻推</span><span>中等</span><span>全力</span></div>
+    </div>
+
+    <!-- Score -->
+    <div class="panel">
+      <h3>比分</h3>
+      <div class="score-wrap">
+        <div class="score-card" id="sc1">
+          <div class="score-name">玩家 1</div>
+          <div class="score-pts" id="pts1">0</div>
+          <div class="score-type" id="type1" style="color:var(--gold)">—</div>
+        </div>
+        <div class="score-card" id="sc2">
+          <div class="score-name">玩家 2</div>
+          <div class="score-pts" id="pts2">0</div>
+          <div class="score-type" id="type2" style="color:var(--accent)">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel">
+      <h3>游戏记录</h3>
+      <div class="game-log" id="gameLog">
+        <div class="log-item info">游戏已就绪，等待开球</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-area">
+    <div class="turn-bar">
+      <span id="turnText">玩家1 开球</span>
+      <span class="turn-badge brk" id="turnBadge">开球</span>
+    </div>
+    <div style="position:relative;display:inline-block;">
+      <canvas id="gameCanvas"></canvas>
+      <div class="foul-msg" id="foulMsg">⚠️ 犯规！</div>
+    </div>
+    <div class="hint">🖱 拖拽瞄准方向 &nbsp;·&nbsp; 🎯 左侧设定击打点 &nbsp;·&nbsp; ⚡ 调节力度后点击/拖拽击球</div>
+  </div>
+
+  <!-- Right -->
+  <div class="right-panel">
+    <div class="panel">
+      <h3>实心球 1–7</h3>
+      <div class="ball-tray" id="solidsTray"></div>
+    </div>
+    <div class="panel">
+      <h3>花球 9–15</h3>
+      <div class="ball-tray" id="stripesTray"></div>
+    </div>
+    <div class="panel">
+      <h3>8号黑球</h3>
+      <div style="display:flex;justify-content:center;padding:4px 0;">
+        <div class="bi" id="b8icon"
+          style="background:#111;width:32px;height:32px;font-size:12px;
+          box-shadow:inset -2px -2px 4px rgba(0,0,0,.5),
+          inset 2px 2px 4px rgba(255,255,255,.12),
+          0 0 8px rgba(167,139,250,.4);">8</div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>规则说明</h3>
+      <div style="font-size:10.5px;color:var(--text-muted);line-height:2;">
+        🖱 拖拽设定击球方向<br>
+        🎯 圆盘选旋转击打点<br>
+        ⚡ 拉杆距离=力度<br>
+        🔵 先入袋者定类型<br>
+        🎱 最后打进8号赢<br>
+        ☠️ 8号提前入袋=输<br>
+        ⚠️ 空杆/打错球=犯规<br>
+        🌐 联机需PeerJS连接
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">🎱 游戏结束</h2>
+    <p id="modalMsg">—</p>
+    <div class="modal-btns">
+      <button class="btn" onclick="resetGame();closeModal()">再来一局</button>
+      <button class="btn sec" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- PeerJS CDN -->
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════
+const CW = 700, CH = 380;   // canvas dimensions
+const RAIL  = 24;            // cushion width
+const PR    = 17;            // pocket radius
+const BR    = 9.5;           // ball radius
+const FRICTION  = 0.987;     // rolling friction per frame
+const SPIN_FRIC = 0.91;      // spin decay per frame
+const RESTITUTION     = 0.91; // ball-ball
+const RAIL_RESTITUTION= 0.74; // ball-rail
+const MIN_V = 0.07;          // stop threshold
+
+// Ball palette
+const BCOLORS = {
+  0:'#f4f4f4',
+  1:'#f7d348', 2:'#2255cc', 3:'#d44040',
+  4:'#8844aa', 5:'#e07832', 6:'#2a8a3c', 7:'#8B2500',
+  8:'#111',
+  9:'#f7d348',10:'#2255cc',11:'#d44040',
+  12:'#8844aa',13:'#e07832',14:'#2a8a3c',15:'#8B2500',
+};
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let canvas, ctx;
+let balls=[], pockets=[];
+let currentPlayer=1;       // 1 or 2
+let playerTypes={1:null,2:null}; // 'solid'|'stripe'
+let scores={1:0,2:0};
+let foul=false;
+let gameOver=false;
+let firstBreak=true;
+let ballsMoving=false;
+let animId=null;
+let thisTurnPocketed=[];
+let cueBallReplacing=false;
+
+// Aiming
+let aimDragging=false;
+let aimOrigin={x:0,y:0};
+let aimCurrent={x:0,y:0};
+let canvasRect=null;
+
+// Cue aim offset (english)
+let cueOfs={x:0,y:0};  // -1..1
+
+// Power
+let power=50;
+
+// PeerJS
+let peer=null, conn=null;
+let isHost=false;
+let onlineMode=false;
+let myPlayerId=1; // which player am I in online mode
+
+// ═══════════════════════════════════════════════════
+//  BALL CLASS
+// ═══════════════════════════════════════════════════
+class Ball {
+  constructor(id,x,y){
+    this.id=id; this.x=x; this.y=y;
+    this.vx=0; this.vy=0;
+    this.sx=0; this.sy=0; // spin
+    this.r=BR;
+    this.pocketed=false;
+    this.color=BCOLORS[id]||'#aaa';
+    this.isStripe=id>=9&&id<=15;
+    this.isSolid=id>=1&&id<=7;
+    this.isCue=id===0;
+    this.is8=id===8;
+  }
+  get speed(){ return Math.hypot(this.vx,this.vy); }
+  moving(){ return this.speed>MIN_V||Math.abs(this.sx)>.008||Math.abs(this.sy)>.008; }
+
+  update(){
+    if(this.pocketed) return;
+    // Spin → velocity (english)
+    this.vx+=this.sx*0.045;
+    this.vy+=this.sy*0.045;
+    this.sx*=SPIN_FRIC;
+    this.sy*=SPIN_FRIC;
+    // Friction
+    this.vx*=FRICTION;
+    this.vy*=FRICTION;
+    if(Math.abs(this.vx)<MIN_V&&Math.abs(this.vy)<MIN_V){
+      this.vx=0;this.vy=0;
+    }
+    this.x+=this.vx;
+    this.y+=this.vy;
+  }
+
+  draw(ctx){
+    if(this.pocketed) return;
+    const {x,y,r}=this;
+
+    // Shadow
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x+2,y+3,r,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.3)';
+    ctx.fill();
+
+    if(this.isStripe){
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle='#fff';ctx.fill();
+      ctx.save();
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();
+      ctx.fillStyle=this.color;
+      ctx.fillRect(x-r,y-r*.44,r*2,r*.88);
+      ctx.restore();
+    } else {
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=this.color;ctx.fill();
+    }
+
+    // Gloss
+    const g=ctx.createRadialGradient(x-r*.3,y-r*.35,r*.05,x,y,r);
+    g.addColorStop(0,'rgba(255,255,255,.52)');
+    g.addColorStop(.5,'rgba(255,255,255,.06)');
+    g.addColorStop(1,'rgba(0,0,0,.18)');
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=g;ctx.fill();
+
+    // Number disc
+    if(this.id>0){
+      const nr=r*(this.isStripe?.47:.5);
+      ctx.beginPath();ctx.arc(x,y,nr,0,Math.PI*2);
+      ctx.fillStyle=this.isStripe?this.color:'rgba(255,255,255,.85)';
+      ctx.fill();
+      ctx.fillStyle=this.isStripe?'#fff':(this.id===8?'#fff':'#222');
+      ctx.font=`bold ${r*.74}px Arial`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(this.id,x,y);
+    }
+
+    // Cue ball: show spin point
+    if(this.isCue){
+      const dx=x+cueOfs.x*r*.55;
+      const dy=y+cueOfs.y*r*.55;
+      ctx.beginPath();ctx.arc(dx,dy,2.2,0,Math.PI*2);
+      ctx.fillStyle='rgba(82,196,160,.9)';ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TABLE DRAWING
+// ═══════════════════════════════════════════════════
+function drawTable(){
+  // Felt
+  const fg=ctx.createLinearGradient(RAIL,RAIL,CW-RAIL,CH-RAIL);
+  fg.addColorStop(0,'#266044');
+  fg.addColorStop(.5,'#3d8862');
+  fg.addColorStop(1,'#266044');
+  ctx.fillStyle=fg;
+  ctx.fillRect(RAIL,RAIL,CW-RAIL*2,CH-RAIL*2);
+
+  // Subtle texture
+  ctx.strokeStyle='rgba(255,255,255,.025)';
+  ctx.lineWidth=1;
+  for(let i=RAIL;i<CW-RAIL;i+=18){
+    ctx.beginPath();ctx.moveTo(i,RAIL);ctx.lineTo(i,CH-RAIL);ctx.stroke();
+  }
+  for(let j=RAIL;j<CH-RAIL;j+=18){
+    ctx.beginPath();ctx.moveTo(RAIL,j);ctx.lineTo(CW-RAIL,j);ctx.stroke();
+  }
+
+  // Head string line (break area)
+  const bx=Math.round(CW*.27);
+  ctx.strokeStyle='rgba(255,255,255,.13)';
+  ctx.lineWidth=1;
+  ctx.setLineDash([5,5]);
+  ctx.beginPath();ctx.moveTo(bx,RAIL);ctx.lineTo(bx,CH-RAIL);ctx.stroke();
+  ctx.setLineDash([]);
+  // Head spot
+  ctx.beginPath();ctx.arc(bx,CH/2,3.5,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fill();
+  // Foot spot
+  ctx.beginPath();ctx.arc(CW*.65,CH/2,3.5,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,.15)';ctx.fill();
+  // Center line
+  ctx.strokeStyle='rgba(255,255,255,.06)';
+  ctx.lineWidth=1;ctx.setLineDash([8,8]);
+  ctx.beginPath();ctx.moveTo(CW/2,RAIL);ctx.lineTo(CW/2,CH-RAIL);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Cushions (rails)
+  // top
+  const makeCushion=(x,y,w,h,horiz)=>{
+    const g2=ctx.createLinearGradient(x,y,horiz?x:x+w,horiz?y+h:y);
+    g2.addColorStop(0,'#0d2b1e');
+    g2.addColorStop(.4,'#1e5237');
+    g2.addColorStop(1,'#0d2b1e');
+    ctx.fillStyle=g2;ctx.fillRect(x,y,w,h);
+  };
+  makeCushion(0,0,CW,RAIL,false);
+  makeCushion(0,CH-RAIL,CW,RAIL,false);
+  makeCushion(0,0,RAIL,CH,true);
+  makeCushion(CW-RAIL,0,RAIL,CH,true);
+
+  // Rail highlight line
+  ctx.strokeStyle='rgba(64,145,108,.55)';ctx.lineWidth=1.5;
+  ctx.strokeRect(RAIL,RAIL,CW-RAIL*2,CH-RAIL*2);
+
+  // Wood border
+  const woodG=ctx.createLinearGradient(0,0,0,CH);
+  woodG.addColorStop(0,'#7a4520');
+  woodG.addColorStop(.5,'#9c5a28');
+  woodG.addColorStop(1,'#7a4520');
+  ctx.strokeStyle=woodG;ctx.lineWidth=5;
+  ctx.strokeRect(2.5,2.5,CW-5,CH-5);
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1.5;
+  ctx.strokeRect(1,1,CW-2,CH-2);
+
+  // Pockets
+  for(const p of pockets){
+    // Pocket shadow glow
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r+4,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.45)';ctx.fill();
+    // Hole
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle='#000';ctx.fill();
+    // Rim
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r+1.5,0,Math.PI*2);
+    ctx.strokeStyle='rgba(92,51,23,.8)';ctx.lineWidth=2.5;ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAW AIM LINE
+// ═══════════════════════════════════════════════════
+function drawAimLine(){
+  const cue=getBall(0);
+  if(!cue||cue.pocketed||ballsMoving||gameOver) return;
+
+  if(aimDragging){
+    const dx=aimOrigin.x-aimCurrent.x;
+    const dy=aimOrigin.y-aimCurrent.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist<4) return;
+    const nx=dx/dist, ny=dy/dist;
+
+    // Ghost cue stick
+    ctx.save();
+    ctx.strokeStyle='rgba(200,160,80,.55)';
+    ctx.lineWidth=4;
+    ctx.lineCap='round';
+    const stickStart=0.8;
+    ctx.beginPath();
+    ctx.moveTo(cue.x-nx*(cue.r+stickStart), cue.y-ny*(cue.r+stickStart));
+    ctx.lineTo(cue.x-nx*(cue.r+stickStart+Math.min(dist,110)), cue.y-ny*(cue.r+stickStart+Math.min(dist,110)));
+    ctx.stroke();
+    ctx.restore();
+
+    // Direction line with power gradient
+    const lineLen=Math.min(dist*3,240);
+    ctx.save();
+    const lg=ctx.createLinearGradient(
+      cue.x+nx*cue.r, cue.y+ny*cue.r,
+      cue.x+nx*(cue.r+lineLen), cue.y+ny*(cue.r+lineLen)
+    );
+    lg.addColorStop(0,'rgba(82,196,160,.9)');
+    lg.addColorStop(.5,'rgba(82,196,160,.45)');
+    lg.addColorStop(1,'rgba(82,196,160,.0)');
+    ctx.strokeStyle=lg;
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([6,5]);
+    ctx.beginPath();
+    ctx.moveTo(cue.x+nx*cue.r, cue.y+ny*cue.r);
+    ctx.lineTo(cue.x+nx*(cue.r+lineLen), cue.y+ny*(cue.r+lineLen));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // Reflect prediction
+    predictReflection(cue.x+nx*cue.r, cue.y+ny*cue.r, nx, ny, lineLen+80);
+  } else {
+    // Hover: show faint crosshair
+    ctx.save();
+    ctx.beginPath();ctx.arc(cue.x,cue.y,cue.r+4,0,Math.PI*2);
+    ctx.strokeStyle='rgba(82,196,160,.3)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function predictReflection(startX,startY,nx,ny,len){
+  // Ray march to wall or ball
+  const step=3;
+  let x=startX+nx*step,y=startY+ny*step;
+  let remaining=len;
+  const maxSteps=600;
+  ctx.save();
+  ctx.strokeStyle='rgba(82,196,160,.18)';ctx.lineWidth=1;ctx.setLineDash([4,6]);
+  ctx.beginPath();ctx.moveTo(startX,startY);
+  let hit=false;
+  for(let s=0;s<maxSteps&&remaining>0;s++){
+    x+=nx*step; y+=ny*step; remaining-=step;
+    // Ball collision
+    for(const b of balls){
+      if(b.pocketed||b.isCue) continue;
+      const dd=Math.hypot(x-b.x,y-b.y);
+      if(dd<b.r+BR){
+        ctx.lineTo(x,y);
+        hit=true;
+        break;
+      }
+    }
+    if(hit) break;
+    // Rail bounce
+    let bounced=false;
+    if(x<RAIL+BR){x=RAIL+BR;nx=-nx;bounced=true;}
+    if(x>CW-RAIL-BR){x=CW-RAIL-BR;nx=-nx;bounced=true;}
+    if(y<RAIL+BR){y=RAIL+BR;ny=-ny;bounced=true;}
+    if(y>CH-RAIL-BR){y=CH-RAIL-BR;ny=-ny;bounced=true;}
+    ctx.lineTo(x,y);
+    if(bounced && remaining<len*.3) break;
+  }
+  ctx.stroke();ctx.setLineDash([]);ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════
+//  PHYSICS
+// ═══════════════════════════════════════════════════
+function ballBallCollision(a,b){
+  const dx=b.x-a.x, dy=b.y-a.y;
+  const dist=Math.hypot(dx,dy);
+  const minD=a.r+b.r;
+  if(dist>=minD||dist<0.001) return false;
+
+  const overlap=(minD-dist)/2;
+  const nx=dx/dist, ny=dy/dist;
+  a.x-=nx*overlap; a.y-=ny*overlap;
+  b.x+=nx*overlap; b.y+=ny*overlap;
+
+  const dvx=b.vx-a.vx, dvy=b.vy-a.vy;
+  const dot=dvx*nx+dvy*ny;
+  if(dot>=0) return true;
+
+  const imp=-(1+RESTITUTION)*dot/2;
+  a.vx-=imp*nx; a.vy-=imp*ny;
+  b.vx+=imp*nx; b.vy+=imp*ny;
+  return true;
+}
+
+function resolveWalls(ball){
+  const L=RAIL+ball.r, R=CW-RAIL-ball.r;
+  const T=RAIL+ball.r, B=CH-RAIL-ball.r;
+  if(ball.x<L){ball.x=L;ball.vx=Math.abs(ball.vx)*RAIL_RESTITUTION;}
+  if(ball.x>R){ball.x=R;ball.vx=-Math.abs(ball.vx)*RAIL_RESTITUTION;}
+  if(ball.y<T){ball.y=T;ball.vy=Math.abs(ball.vy)*RAIL_RESTITUTION;}
+  if(ball.y>B){ball.y=B;ball.vy=-Math.abs(ball.vy)*RAIL_RESTITUTION;}
+}
+
+function checkPockets(){
+  const newly=[];
+  for(const ball of balls){
+    if(ball.pocketed) continue;
+    for(const p of pockets){
+      const d=Math.hypot(ball.x-p.x, ball.y-p.y);
+      if(d < p.r + ball.r*.4){
+        ball.pocketed=true;
+        newly.push(ball);
+        break;
+      }
+    }
+  }
+  return newly;
+}
+
+function physicsStep(){
+  // Update positions
+  for(const b of balls) b.update();
+
+  // Ball-ball collisions (multiple passes for stability)
+  for(let pass=0;pass<3;pass++){
+    for(let i=0;i<balls.length;i++){
+      for(let j=i+1;j<balls.length;j++){
+        const a=balls[i],b=balls[j];
+        if(a.pocketed||b.pocketed) continue;
+        ballBallCollision(a,b);
+      }
+    }
+  }
+
+  // Wall collisions
+  for(const b of balls){
+    if(!b.pocketed) resolveWalls(b);
+  }
+
+  // Pocket detection
+  const np=checkPockets();
+  if(np.length) handlePocketed(np);
+
+  // Check if all stopped
+  ballsMoving=balls.some(b=>!b.pocketed&&b.moving());
+  if(!ballsMoving&&animId) endOfTurn();
+}
+
+// ═══════════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════════
+function handlePocketed(newly){
+  for(const ball of newly){
+    thisTurnPocketed.push(ball);
+    addLog(`入袋: ${ball.isCue?'母球':'#'+ball.id}`,ball.isCue?'bad':'good');
+    updateBallTray(ball.id);
+  }
+}
+
+function endOfTurn(){
+  // Called once all balls stop
+  const pocketed=thisTurnPocketed.slice();
+  thisTurnPocketed=[];
+
+  const cue=getBall(0);
+  const cuePocketed=pocketed.some(b=>b.isCue);
+  const e8Pocketed=pocketed.some(b=>b.is8);
+  const otherPocketed=pocketed.filter(b=>!b.isCue&&!b.is8);
+  let switchTurn=true;
+
+  // Check 8-ball end condition
+  if(e8Pocketed){
+    const allMyBalls=balls.filter(b=>!b.pocketed&&isMyBall(b,currentPlayer));
+    if(allMyBalls.length===0 && !cuePocketed && !firstBreak){
+      // Win!
+      endGame(currentPlayer,'🏆 '+`玩家${currentPlayer} 打进了8号球，赢得比赛！`);
+    } else {
+      endGame(3-currentPlayer,`玩家${currentPlayer} 提前打进了8号球，对方获胜！`);
+    }
+    return;
+  }
+
+  // Cue ball scratched
+  if(cuePocketed){
+    foul=true;
+    showFoul();
+    addLog(`玩家${currentPlayer} 犯规：母球入袋`,'bad');
+    replaceCueBall();
+    switchTurn=true;
+  } else {
+    // Determine correct balls for player
+    if(otherPocketed.length>0){
+      // Assign types on first legal pocket
+      if(!playerTypes[1]&&!playerTypes[2]&&!firstBreak){
+        const firstType=otherPocketed[0].isSolid?'solid':'stripe';
+        playerTypes[currentPlayer]=firstType;
+        playerTypes[3-currentPlayer]=firstType==='solid'?'stripe':'solid';
+        updateTypeUI();
+        addLog(`玩家${currentPlayer} 定为 ${firstType==='solid'?'实心球':'花球'}`,'info');
+      }
+      // Check if they pocketed own type
+      const ownType=playerTypes[currentPlayer];
+      const goodPockets=otherPocketed.filter(b=>
+        !ownType || (ownType==='solid'&&b.isSolid)||(ownType==='stripe'&&b.isStripe)
+      );
+      if(goodPockets.length>0){
+        scores[currentPlayer]+=goodPockets.length;
+        document.getElementById('pts'+currentPlayer).textContent=scores[currentPlayer];
+        switchTurn=false; // continue turn
+      }
+    }
+  }
+
+  firstBreak=false;
+
+  if(switchTurn){
+    currentPlayer=3-currentPlayer;
+    updateTurnUI();
+    syncState();
+  } else {
+    updateTurnUI();
+    syncState();
+  }
+}
+
+function isMyBall(ball,player){
+  const t=playerTypes[player];
+  if(!t) return false;
+  return (t==='solid'&&ball.isSolid)||(t==='stripe'&&ball.isStripe);
+}
+
+function replaceCueBall(){
+  const cue=getBall(0);
+  cue.pocketed=false;
+  cue.vx=0;cue.vy=0;cue.sx=0;cue.sy=0;
+  // Place in kitchen (head area)
+  cue.x=CW*0.22;
+  cue.y=CH/2;
+  // Make sure it doesn't overlap another ball
+  for(let attempt=0;attempt<30;attempt++){
+    let overlap=false;
+    for(const b of balls){
+      if(b.isCue||b.pocketed) continue;
+      if(Math.hypot(b.x-cue.x,b.y-cue.y)<b.r+cue.r+2){overlap=true;break;}
+    }
+    if(!overlap) break;
+    cue.y+=8;
+    if(cue.y>CH-RAIL-BR) cue.y=RAIL+BR+10;
+  }
+  addLog('母球重新放置（可自由放置）','info');
+}
+
+function getBall(id){ return balls.find(b=>b.id===id); }
+
+function shoot(dx,dy,pwr){
+  if(gameOver) return;
+  if(ballsMoving) return;
+  if(onlineMode && currentPlayer!==myPlayerId){ showToast('还没到你的回合'); return; }
+
+  const cue=getBall(0);
+  if(!cue||cue.pocketed) return;
+
+  const dist=Math.hypot(dx,dy);
+  if(dist<1) return;
+  const nx=dx/dist, ny=dy/dist;
+  const speed=(pwr/100)*22; // max speed 22
+
+  cue.vx=nx*speed;
+  cue.vy=ny*speed;
+  // Apply spin from cue offset
+  cue.sx=cueOfs.x*speed*0.18;
+  cue.sy=cueOfs.y*speed*0.18;
+
+  ballsMoving=true;
+  addLog(`玩家${currentPlayer} 出杆 (力度${pwr}%)`,'good');
+
+  // Sync to peer
+  if(conn && conn.open){
+    conn.send({type:'shot',dx,dy,pwr,cueOfs:{...cueOfs},cueX:cue.x,cueY:cue.y});
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════
+function setupPockets(){
+  const cx=CW/2, cy=CH/2;
+  pockets=[
+    {x:RAIL+1,   y:RAIL+1,    r:PR},
+    {x:cx,       y:RAIL-3,    r:PR-3},
+    {x:CW-RAIL-1,y:RAIL+1,    r:PR},
+    {x:RAIL+1,   y:CH-RAIL-1, r:PR},
+    {x:cx,       y:CH-RAIL+3, r:PR-3},
+    {x:CW-RAIL-1,y:CH-RAIL-1, r:PR},
+  ];
+}
+
+function setupBalls(){
+  balls=[];
+  balls.push(new Ball(0, CW*0.27, CH/2));
+  // Standard rack
+  const rx=CW*0.65, ry=CH/2;
+  const sp=BR*2.1;
+  const rows=[[1],[2,3],[4,8,5],[6,7,9,10],[11,12,13,14,15]];
+  for(let r=0;r<rows.length;r++){
+    const row=rows[r];
+    for(let c=0;c<row.length;c++){
+      const id=row[c];
+      const bx=rx+r*sp;
+      const by=ry+(c-(row.length-1)/2)*sp;
+      balls.push(new Ball(id,bx,by));
+    }
+  }
+}
+
+function buildBallTrays(){
+  const st=document.getElementById('solidsTray');
+  const sp=document.getElementById('stripesTray');
+  st.innerHTML=''; sp.innerHTML='';
+  for(let i=1;i<=7;i++){
+    const d=document.createElement('div');
+    d.className='bi'; d.id='bi'+i;
+    d.textContent=i;
+    d.style.background=BCOLORS[i];
+    st.appendChild(d);
+  }
+  for(let i=9;i<=15;i++){
+    const d=document.createElement('div');
+    d.className='bi'; d.id='bi'+i;
+    d.textContent=i;
+    d.style.background='#fff';
+    d.style.color=BCOLORS[i];
+    d.style.border='2px solid '+BCOLORS[i];
+    sp.appendChild(d);
+  }
+}
+
+function updateBallTray(id){
+  const el=document.getElementById('bi'+id);
+  if(el) el.classList.add('out');
+  if(id===8) document.getElementById('b8icon').classList.add('out');
+}
+
+function updateTypeUI(){
+  const t1=playerTypes[1],t2=playerTypes[2];
+  const el1=document.getElementById('type1');
+  const el2=document.getElementById('type2');
+  el1.textContent=t1?(t1==='solid'?'🔵 实心球':'🎯 花球'):'—';
+  el2.textContent=t2?(t2==='solid'?'🔵 实心球':'🎯 花球'):'—';
+}
+
+// ═══════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════
+let _lastEndOfTurnCalled=false;
+function gameLoop(){
+  ctx.clearRect(0,0,CW,CH);
+  drawTable();
+
+  if(ballsMoving){
+    physicsStep();
+  }
+
+  // Draw balls
+  for(const b of balls) b.draw(ctx);
+
+  drawAimLine();
+  animId=requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════
+//  TURN UI
+// ═══════════════════════════════════════════════════
+function updateTurnUI(){
+  const sc1=document.getElementById('sc1');
+  const sc2=document.getElementById('sc2');
+  sc1.classList.toggle('active',currentPlayer===1);
+  sc2.classList.toggle('active',currentPlayer===2);
+
+  const tb=document.getElementById('turnBadge');
+  const tt=document.getElementById('turnText');
+
+  const isMe=!onlineMode||(currentPlayer===myPlayerId);
+  if(gameOver){ tt.textContent='游戏结束'; tb.className='turn-badge'; return; }
+
+  if(firstBreak){
+    tt.textContent=`玩家${currentPlayer} 开球`;
+    tb.className='turn-badge brk'; tb.textContent='开球';
+  } else if(!isMe){
+    tt.textContent=`等待玩家${currentPlayer}…`;
+    tb.className='turn-badge wait'; tb.textContent='等待';
+  } else {
+    tt.textContent=`玩家${currentPlayer} 的回合`;
+    tb.className='turn-badge'; tb.textContent='击球';
+  }
+}
+
+function showFoul(){
+  const el=document.getElementById('foulMsg');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ═══════════════════════════════════════════════════
+//  END GAME / RESET
+// ═══════════════════════════════════════════════════
+function endGame(winner,msg){
+  gameOver=true;
+  cancelAnimationFrame(animId);
+  ballsMoving=false;
+  addLog(msg,'info');
+  setTimeout(()=>{
+    document.getElementById('modalTitle').textContent=`🏆 玩家${winner} 获胜！`;
+    document.getElementById('modalMsg').textContent=msg;
+    document.getElementById('overlay').classList.remove('hidden');
+  },600);
+}
+
+function resetGame(){
+  gameOver=false;
+  currentPlayer=1;
+  playerTypes={1:null,2:null};
+  scores={1:0,2:0};
+  foul=false;
+  firstBreak=true;
+  ballsMoving=false;
+  thisTurnPocketed=[];
+  aimDragging=false;
+  document.getElementById('pts1').textContent='0';
+  document.getElementById('pts2').textContent='0';
+  document.getElementById('type1').textContent='—';
+  document.getElementById('type2').textContent='—';
+  document.getElementById('gameLog').innerHTML='<div class="log-item info">新局开始</div>';
+  setupBalls();
+  buildBallTrays();
+  updateTurnUI();
+  if(!animId) gameLoop();
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════
+//  CUE AIM DIAL
+// ═══════════════════════════════════════════════════
+function initCueAimDial(){
+  const ac=document.getElementById('cueAimCanvas');
+  const actx=ac.getContext('2d');
+  const W=ac.width, H=ac.height, cx=W/2, cy=H/2, R=cx-4;
+
+  function drawDial(){
+    actx.clearRect(0,0,W,H);
+    // Background ball
+    const bg=actx.createRadialGradient(cx-R*.3,cy-R*.35,R*.05,cx,cy,R);
+    bg.addColorStop(0,'#dde8e0');
+    bg.addColorStop(1,'#a0c4b8');
+    actx.beginPath();actx.arc(cx,cy,R,0,Math.PI*2);
+    actx.fillStyle=bg;actx.fill();
+    actx.strokeStyle='var(--border,#30363d)';actx.lineWidth=1.5;actx.stroke();
+
+    // Grid lines
+    actx.strokeStyle='rgba(0,0,0,.12)';actx.lineWidth=1;
+    actx.beginPath();actx.moveTo(cx,cy-R);actx.lineTo(cx,cy+R);actx.stroke();
+    actx.beginPath();actx.moveTo(cx-R,cy);actx.lineTo(cx+R,cy);actx.stroke();
+    // Circles
+    for(const fr of [0.33,0.66]){
+      actx.beginPath();actx.arc(cx,cy,R*fr,0,Math.PI*2);
+      actx.strokeStyle='rgba(0,0,0,.1)';actx.stroke();
+    }
+
+    // Gloss
+    const gl=actx.createRadialGradient(cx-R*.3,cy-R*.35,R*.03,cx,cy,R);
+    gl.addColorStop(0,'rgba(255,255,255,.55)');
+    gl.addColorStop(.5,'rgba(255,255,255,.05)');
+    gl.addColorStop(1,'rgba(0,0,0,.12)');
+    actx.beginPath();actx.arc(cx,cy,R,0,Math.PI*2);
+    actx.fillStyle=gl;actx.fill();
+
+    // Hit point indicator
+    const px=cx+cueOfs.x*R*.72;
+    const py=cy+cueOfs.y*R*.72;
+    actx.beginPath();actx.arc(px,py,4,0,Math.PI*2);
+    actx.fillStyle='rgba(82,196,160,1)';actx.fill();
+    actx.strokeStyle='rgba(0,0,0,.4)';actx.lineWidth=1;actx.stroke();
+  }
+  drawDial();
+
+  function onAimInput(e){
+    e.preventDefault();
+    const rect=ac.getBoundingClientRect();
+    const clientX=e.touches?e.touches[0].clientX:e.clientX;
+    const clientY=e.touches?e.touches[0].clientY:e.clientY;
+    const mx=clientX-rect.left, my=clientY-rect.top;
+    let ox=(mx-cx)/R, oy=(my-cy)/R;
+    const len=Math.hypot(ox,oy);
+    if(len>0.88){ox=ox/len*.88;oy=oy/len*.88;}
+    cueOfs={x:ox,y:oy};
+    const coord=document.getElementById('aimCoord');
+    coord.textContent=`(${ox.toFixed(2)}, ${oy.toFixed(2)})`;
+    drawDial();
+  }
+  ac.addEventListener('mousedown',e=>{ac.addEventListener('mousemove',onAimInput);onAimInput(e);});
+  ac.addEventListener('mouseup',()=>ac.removeEventListener('mousemove',onAimInput));
+  ac.addEventListener('mouseleave',()=>ac.removeEventListener('mousemove',onAimInput));
+  ac.addEventListener('touchstart',onAimInput,{passive:false});
+  ac.addEventListener('touchmove',onAimInput,{passive:false});
+}
+
+// ═══════════════════════════════════════════════════
+//  POWER CONTROL
+// ═══════════════════════════════════════════════════
+function updatePower(v){
+  power=parseInt(v||document.getElementById('pwrSlider').value);
+  document.getElementById('pwrVal').textContent=power+'%';
+  document.getElementById('pwrBar').style.width=power+'%';
+}
+
+// ═══════════════════════════════════════════════════
+//  MOUSE / TOUCH INPUT ON CANVAS
+// ═══════════════════════════════════════════════════
+function getCanvasPos(e){
+  if(!canvasRect) canvasRect=canvas.getBoundingClientRect();
+  const scaleX=CW/canvasRect.width;
+  const scaleY=CH/canvasRect.height;
+  const clientX=e.touches?e.touches[0].clientX:e.clientX;
+  const clientY=e.touches?e.touches[0].clientY:e.clientY;
+  return {
+    x:(clientX-canvasRect.left)*scaleX,
+    y:(clientY-canvasRect.top)*scaleY,
+  };
+}
+
+function canMousedown(e){
+  if(ballsMoving||gameOver) return;
+  if(onlineMode && currentPlayer!==myPlayerId) return;
+  canvasRect=canvas.getBoundingClientRect();
+  const pos=getCanvasPos(e);
+  aimDragging=true;
+  aimOrigin={...pos};
+  aimCurrent={...pos};
+}
+
+function canMousemove(e){
+  if(!aimDragging) return;
+  aimCurrent=getCanvasPos(e);
+}
+
+function canMouseup(e){
+  if(!aimDragging) return;
+  aimDragging=false;
+  const pos=getCanvasPos(e);
+  // Direction from aim end back toward cue ball (pull-back mechanic)
+  const dx=aimOrigin.x-pos.x;
+  const dy=aimOrigin.y-pos.y;
+  const dist=Math.hypot(dx,dy);
+  if(dist<6) return; // too small
+
+  // Power: blend slider value with drag distance
+  const dragPower=Math.min(100, dist*1.1);
+  const finalPower=Math.round((power*0.5 + dragPower*0.5));
+
+  shoot(dx,dy,Math.min(100,finalPower));
+}
+
+// ═══════════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════════
+function addLog(msg,type=''){
+  const log=document.getElementById('gameLog');
+  const d=document.createElement('div');
+  d.className='log-item'+(type?' '+type:'');
+  d.textContent=msg;
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+  // Keep last 30
+  while(log.children.length>30) log.removeChild(log.firstChild);
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ═══════════════════════════════════════════════════
+//  PEER.JS NETWORKING
+// ═══════════════════════════════════════════════════
+function initPeer(){
+  // Use a random 6-digit room code
+  const roomId='pool-'+Math.random().toString(36).substr(2,6).toUpperCase();
+  peer=new Peer(roomId,{
+    debug:0,
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'}]}
+  });
+
+  peer.on('open',id=>{
+    document.getElementById('myPeerIdText').textContent=id;
+    document.getElementById('netDot').className='dot on';
+    document.getElementById('netStatus').textContent='已就绪';
+    addLog('联机服务已启动','info');
+  });
+
+  peer.on('connection',connection=>{
+    if(conn){ connection.close(); return; }
+    conn=connection;
+    isHost=true;
+    onlineMode=true;
+    myPlayerId=1;
+    setupPeerConn();
+    document.getElementById('modeLabel').textContent='联机模式 · 你是玩家1';
+    showToast('对方已连接！你是玩家1');
+    addLog('玩家2已连接','info');
+    syncState();
+  });
+
+  peer.on('error',err=>{
+    document.getElementById('netDot').className='dot';
+    document.getElementById('netStatus').textContent='连接失败';
+    addLog('网络错误: '+err.type,'bad');
+    showToast('⚠️ PeerJS错误，将使用本地双人模式');
+    onlineMode=false;
+  });
+}
+
+function connectToPeer(){
+  const targetId=document.getElementById('connectInput').value.trim();
+  if(!targetId){ showToast('请输入对方房间ID'); return; }
+  if(!peer){ showToast('网络未就绪'); return; }
+  document.getElementById('netDot').className='dot wait';
+  document.getElementById('netStatus').textContent='连接中…';
+  conn=peer.connect(targetId,{reliable:true});
+  setupPeerConn();
+  isHost=false;
+  onlineMode=true;
+  myPlayerId=2;
+  document.getElementById('modeLabel').textContent='联机模式 · 你是玩家2';
+}
+
+function setupPeerConn(){
+  conn.on('open',()=>{
+    document.getElementById('netDot').className='dot on';
+    document.getElementById('netStatus').textContent='已连接';
+    addLog('与对方连接成功','info');
+    showToast('🎱 联机成功！');
+  });
+  conn.on('data',handlePeerData);
+  conn.on('close',()=>{
+    document.getElementById('netDot').className='dot';
+    document.getElementById('netStatus').textContent='已断开';
+    addLog('对方断开连接','bad');
+    onlineMode=false;
+    conn=null;
+  });
+  conn.on('error',e=>{
+    addLog('连接错误: '+e,'bad');
+  });
+}
+
+function handlePeerData(data){
+  if(data.type==='shot'){
+    // Remote player shot
+    const cue=getBall(0);
+    if(!cue) return;
+    cue.x=data.cueX; cue.y=data.cueY;
+    if(data.cueOfs) Object.assign(cueOfs,data.cueOfs);
+    shoot(data.dx,data.dy,data.pwr);
+  } else if(data.type==='state'){
+    // Full state sync (host→guest on turn changes)
+    if(!isHost) applyRemoteState(data.state);
+  } else if(data.type==='reset'){
+    resetGame();
+  }
+}
+
+function syncState(){
+  if(!conn||!conn.open||!isHost) return;
+  const state={
+    balls:balls.map(b=>({
+      id:b.id,x:b.x,y:b.y,vx:b.vx,vy:b.vy,pocketed:b.pocketed
+    })),
+    currentPlayer,playerTypes,scores,firstBreak,gameOver
+  };
+  conn.send({type:'state',state});
+}
+
+function applyRemoteState(state){
+  currentPlayer=state.currentPlayer;
+  playerTypes=state.playerTypes;
+  scores=state.scores;
+  firstBreak=state.firstBreak;
+  gameOver=state.gameOver;
+  document.getElementById('pts1').textContent=scores[1];
+  document.getElementById('pts2').textContent=scores[2];
+  for(const bs of state.balls){
+    const local=getBall(bs.id);
+    if(local){
+      local.x=bs.x; local.y=bs.y;
+      local.vx=bs.vx; local.vy=bs.vy;
+      if(bs.pocketed&&!local.pocketed){ local.pocketed=true; updateBallTray(bs.id); }
+    }
+  }
+  updateTypeUI();
+  updateTurnUI();
+}
+
+function disconnectPeer(){
+  if(conn){ conn.close(); conn=null; }
+  onlineMode=false;
+  document.getElementById('netDot').className='dot on';
+  document.getElementById('netStatus').textContent='已就绪';
+  document.getElementById('modeLabel').textContent='本地双人 / 联机对战';
+  addLog('已断开联机','info');
+}
+
+function copyId(){
+  const id=document.getElementById('myPeerIdText').textContent;
+  if(!id||id==='—') return;
+  navigator.clipboard.writeText(id).then(()=>showToast('ID已复制到剪贴板'));
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+window.onload=function(){
+  canvas=document.getElementById('gameCanvas');
+  canvas.width=CW; canvas.height=CH;
+  ctx=canvas.getContext('2d');
+
+  setupPockets();
+  setupBalls();
+  buildBallTrays();
+  initCueAimDial();
+  updatePower(50);
+  updateTurnUI();
+
+  // Canvas events
+  canvas.addEventListener('mousedown',canMousedown);
+  canvas.addEventListener('mousemove',canMousemove);
+  canvas.addEventListener('mouseup',canMouseup);
+  canvas.addEventListener('mouseleave',e=>{ if(aimDragging){ canMouseup(e); } });
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();canMousedown(e);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();canMousemove(e);},{passive:false});
+  canvas.addEventListener('touchend',e=>{e.preventDefault();canMouseup(e);},{passive:false});
+
+  // Start render loop
+  gameLoop();
+
+  // Init PeerJS (with fallback)
+  try{ initPeer(); }
+  catch(e){ addLog('联机不可用，本地模式','info'); }
+};
+</script>
+</body>
+</html>
