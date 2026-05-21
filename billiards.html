@@ -956,7 +956,14 @@ function connectToPeer(){
   document.getElementById('modeLabel').textContent='联机·P2';
 }
 function setupPC(){
-  conn.on('open',()=>{document.getElementById('netDot').className='dot on';document.getElementById('netStatus').textContent='已连接';showToast('🎱 联机成功！');});
+  function onOpen(){
+    document.getElementById('netDot').className='dot on';
+    document.getElementById('netStatus').textContent='已连接';
+    showToast('联机成功！');
+  }
+  // 修复：如果连接已开启（open事件在监听到达前就触发了），直接更新UI
+  if(conn.open){onOpen();}
+  else{conn.on('open',onOpen);}
   conn.on('data',onData);
   conn.on('close',()=>{document.getElementById('netDot').className='dot on';document.getElementById('netStatus').textContent='就绪';onlineMode=false;conn=null;addLog('对方断开','bad');});
   conn.on('error',e=>addLog('连接错误','bad'));
